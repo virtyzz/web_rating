@@ -81,7 +81,11 @@ async def upload_cluster_screenshots(
                 detail=f"{upload.filename} is empty.",
             )
         try:
-            extracted = gemini_service.extract_players(image_bytes=image_bytes, mime_type=upload.content_type)
+            extracted = gemini_service.extract_players(
+                image_bytes=image_bytes,
+                mime_type=upload.content_type,
+                server_name=server_name,
+            )
         except GeminiExtractionError as exc:
             raise HTTPException(
                 status_code=status.HTTP_502_BAD_GATEWAY,
@@ -106,4 +110,3 @@ async def get_servers(cluster: int, db: Session = Depends(get_db)):
 @app.get("/summary/{cluster}", response_model=ClusterSummaryResponse)
 async def get_summary(cluster: int, db: Session = Depends(get_db)):
     return get_cluster_summary(db=db, cluster_id=cluster)
-
