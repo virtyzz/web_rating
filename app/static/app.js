@@ -11,12 +11,15 @@ const clusterSwitch = document.getElementById("clusterSwitch");
 const uploadFields = document.getElementById("uploadFields");
 const uploadForm = document.getElementById("uploadForm");
 const submitButton = document.getElementById("submitButton");
+const providerSelect = document.getElementById("providerSelect");
+const modelSelect = document.getElementById("modelSelect");
 const message = document.getElementById("message");
 const serverTables = document.getElementById("serverTables");
 const summaryTable = document.getElementById("summaryTable");
 const summaryMeta = document.getElementById("summaryMeta");
 const clusterStatus = document.getElementById("clusterStatus");
 const progressItems = Array.from(document.querySelectorAll("#progressList li"));
+let providerOptions = [];
 
 function setMessage(text, type = "") {
   message.textContent = text;
@@ -33,6 +36,58 @@ function markProgress(step) {
 
 function resetProgress() {
   progressItems.forEach((item) => item.classList.remove("active", "done"));
+}
+
+function updateModelSelect() {
+  const selectedProvider = providerOptions.find((item) => item.provider === providerSelect.value);
+  modelSelect.innerHTML = "";
+
+  if (!selectedProvider) {
+    return;
+  }
+
+  selectedProvider.models.forEach((modelName) => {
+    const option = document.createElement("option");
+    option.value = modelName;
+    option.textContent = modelName;
+    if (modelName === selectedProvider.default_model) {
+      option.selected = true;
+    }
+    modelSelect.appendChild(option);
+  });
+
+  modelSelect.disabled = !selectedProvider.enabled;
+}
+
+async function loadProviders() {
+  const response = await fetch("/providers");
+  const payload = await response.json();
+  if (!response.ok) {
+    throw new Error(payload.detail || "Не удалось получить список AI-провайдеров.");
+  }
+
+  providerOptions = payload.providers;
+  providerSelect.innerHTML = "";
+
+  payload.providers.forEach((provider) => {
+    const option = document.createElement("option");
+    option.value = provider.provider;
+    option.textContent = provider.enabled
+      ? `${provider.provider} (${provider.default_model})`
+      : `${provider.provider} (не настроен)`;
+    option.disabled = !provider.enabled;
+    option.selected = provider.provider === payload.default_provider;
+    providerSelect.appendChild(option);
+  });
+
+  if (!providerSelect.value) {
+    const firstEnabled = payload.providers.find((item) => item.enabled);
+    if (firstEnabled) {
+      providerSelect.value = firstEnabled.provider;
+    }
+  }
+
+  updateModelSelect();
 }
 
 function createClusterButtons() {
@@ -191,9 +246,15 @@ uploadForm.addEventListener("submit", async (event) => {
   submitButton.disabled = true;
 
   try {
+    if (!providerSelect.value || !modelSelect.value) {
+      throw new Error("Выберите настроенный AI-провайдер и модель.");
+    }
+
     markProgress(0);
     const formData = new FormData();
     const files = [];
+    formData.append("provider", providerSelect.value);
+    formData.append("model", modelSelect.value);
 
     clusterServers[state.cluster].forEach((serverName) => {
       const input = document.getElementById(serverName);
@@ -228,7 +289,7 @@ uploadForm.addEventListener("submit", async (event) => {
     markProgress(3);
     await loadClusterData();
     markProgress(4);
-    setMessage(payload.message, "success");
+    setMessage(`${payload.message} Провайдер: ${payload.provider}, модель: ${payload.model}.`, "success");
   } catch (error) {
     setMessage(error.message, "error");
     resetProgress();
@@ -237,6 +298,13 @@ uploadForm.addEventListener("submit", async (event) => {
   }
 });
 
+providerSelect.addEventListener("change", () => {
+  updateModelSelect();
+  setMessage("");
+});
+
 createClusterButtons();
 createUploadFields();
-loadClusterData();
+loadProviders()
+  .then(loadClusterData)
+  .catch((error) => setMessage(`Не удалось загрузить настройки моделей: ${error.message}`, "error"));

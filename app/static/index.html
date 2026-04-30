@@ -31,6 +31,16 @@
         </div>
 
         <form id="uploadForm" class="upload-grid">
+          <div class="model-row">
+            <div class="field-group">
+              <label for="providerSelect">AI провайдер</label>
+              <select id="providerSelect"></select>
+            </div>
+            <div class="field-group">
+              <label for="modelSelect">Модель</label>
+              <select id="modelSelect"></select>
+            </div>
+          </div>
           <div id="uploadFields" class="upload-fields"></div>
           <button id="submitButton" type="submit" class="primary-button">Обработать кластер</button>
         </form>
@@ -69,4 +79,3 @@
   <script src="/static/app.js" defer></script>
 </body>
 </html>
-

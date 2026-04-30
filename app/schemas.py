@@ -77,7 +77,20 @@ class ClusterSummaryResponse(BaseModel):
 
 class UploadResponse(BaseModel):
     cluster_id: int
+    provider: str
+    model: str
     processed_servers: list[str]
     players_saved: int
     message: str
 
+
+class ProviderOption(BaseModel):
+    provider: str
+    models: list[str]
+    enabled: bool
+    default_model: str
+
+
+class ProvidersResponse(BaseModel):
+    default_provider: str
+    providers: list[ProviderOption]

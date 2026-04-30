@@ -4,6 +4,10 @@ CLUSTERS: dict[int, list[str]] = {
 }
 
 ALLOWED_MIME_TYPES = {"image/jpeg", "image/png", "image/webp", "image/jpg"}
+SUPPORTED_PROVIDERS: dict[str, list[str]] = {
+    "gemini": ["gemini-2.5-flash"],
+    "qwen": ["qwen3-vl-flash"],
+}
 
 BASE_PROMPT = (
     "Извлеки таблицу из этого скриншота. "
@@ -19,4 +23,3 @@ RETRY_PROMPT = (
     'Строго соблюдай структуру {"players": [{"name": str, "rank": int, "points": int, "kills": int}]}. '
     "Все rank, points и kills должны быть целыми числами."
 )
-
