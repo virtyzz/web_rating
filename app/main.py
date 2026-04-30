@@ -9,9 +9,8 @@ from sqlalchemy.orm import Session
 
 from app.constants import ALLOWED_MIME_TYPES, CLUSTERS
 from app.database import Base, engine, get_db
-from app.schemas import ClusterServersResponse, ClusterSummaryResponse, ProvidersResponse, UploadResponse
-from app.services.base import AIExtractionError, AIProviderError
-from app.services.factory import get_extraction_service, get_provider_options
+from app.schemas import ClusterServersResponse, ClusterSummaryResponse, UploadResponse
+from app.services.gemini import GeminiExtractionError, GeminiService
 from app.services.storage import get_cluster_servers, get_cluster_summary, replace_cluster_data
 
 
@@ -63,25 +62,15 @@ async def healthcheck():
     return {"status": "ok"}
 
 
-@app.get("/providers", response_model=ProvidersResponse)
-async def providers():
-    return get_provider_options()
-
-
 @app.post("/upload/{cluster}", response_model=UploadResponse)
 async def upload_cluster_screenshots(
     cluster: int,
     files: list[UploadFile] = File(...),
     server_names: list[str] = Form(...),
-    provider: str = Form("gemini"),
-    model: str | None = Form(None),
     db: Session = Depends(get_db),
 ):
     normalized_names = validate_upload_payload(cluster, files, server_names)
-    try:
-        extraction_service = get_extraction_service(provider=provider, model=model)
-    except AIProviderError as exc:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)) from exc
+    gemini_service = GeminiService()
 
     extracted_payload = {}
     for server_name, upload in zip(normalized_names, files):
@@ -92,12 +81,12 @@ async def upload_cluster_screenshots(
                 detail=f"{upload.filename} is empty.",
             )
         try:
-            extracted = extraction_service.extract_players(
+            extracted = gemini_service.extract_players(
                 image_bytes=image_bytes,
                 mime_type=upload.content_type,
                 server_name=server_name,
             )
-        except AIExtractionError as exc:
+        except GeminiExtractionError as exc:
             raise HTTPException(
                 status_code=status.HTTP_502_BAD_GATEWAY,
                 detail=f"Failed to parse screenshot for {server_name}: {exc}",
@@ -107,8 +96,6 @@ async def upload_cluster_screenshots(
     players_saved = replace_cluster_data(db=db, cluster_id=cluster, payload=extracted_payload)
     return UploadResponse(
         cluster_id=cluster,
-        provider=extraction_service.provider_name,
-        model=extraction_service.model_name,
         processed_servers=normalized_names,
         players_saved=players_saved,
         message="Cluster data uploaded, recognized, and saved successfully.",

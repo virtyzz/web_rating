@@ -11,21 +11,20 @@ from pydantic import ValidationError
 
 from app.config import get_settings
 from app.constants import BASE_PROMPT, RETRY_PROMPT
-from app.services.base import AIExtractionError, AIProviderError, BaseExtractionService
 from app.schemas import GeminiPlayersResponse
 
 
 logger = logging.getLogger(__name__)
 
 
-class GeminiService(BaseExtractionService):
-    provider_name = "gemini"
+class GeminiExtractionError(Exception):
+    pass
 
-    def __init__(self, model_name: str | None = None) -> None:
+
+class GeminiService:
+    def __init__(self) -> None:
         settings = get_settings()
-        if not settings.gemini_api_key:
-            raise AIProviderError("GEMINI_API_KEY is not configured.")
-        self.model_name = model_name or settings.gemini_model
+        self.model_name = settings.gemini_model
         self.client = genai.Client(api_key=settings.gemini_api_key)
 
     def extract_players(self, image_bytes: bytes, mime_type: str, server_name: str) -> GeminiPlayersResponse:
@@ -77,7 +76,7 @@ class GeminiService(BaseExtractionService):
                             exc.code,
                             exc,
                         )
-                        raise AIExtractionError(f"Gemini API request failed: {exc}") from exc
+                        raise GeminiExtractionError(f"Gemini API request failed: {exc}") from exc
             except (json.JSONDecodeError, ValidationError, ValueError) as exc:
                 logger.warning(
                     "Gemini returned invalid structured data for server=%s model=%s reason=%s",
@@ -87,6 +86,6 @@ class GeminiService(BaseExtractionService):
                 )
                 last_error = exc
 
-        raise AIExtractionError(
+        raise GeminiExtractionError(
             f"Gemini returned invalid structured data after retry: {last_error}"
         )
