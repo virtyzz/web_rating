@@ -49,7 +49,7 @@
 
 ```env
 GEMINI_API_KEY=your_real_key
-DATABASE_URL=postgresql://ranks_user:ranks_password@db:5432/ranks
+DATABASE_URL=postgresql+psycopg://ranks_user:ranks_password@db:5432/ranks
 POSTGRES_USER=ranks_user
 POSTGRES_PASSWORD=ranks_password
 POSTGRES_DB=ranks
