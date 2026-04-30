@@ -49,6 +49,7 @@
 
 ```env
 GEMINI_API_KEY=your_real_key
+GEMINI_MODEL=gemini-2.5-flash
 DATABASE_URL=postgresql+psycopg://ranks_user:ranks_password@db:5432/ranks
 POSTGRES_USER=ranks_user
 POSTGRES_PASSWORD=ranks_password

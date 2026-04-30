@@ -11,7 +11,7 @@ class Settings(BaseSettings):
     app_name: str = "YW Web Rating"
     gemini_api_key: str = Field(..., alias="GEMINI_API_KEY")
     database_url: str = Field(..., alias="DATABASE_URL")
-    gemini_model: str = "gemini-1.5-flash"
+    gemini_model: str = Field("gemini-2.5-flash", alias="GEMINI_MODEL")
 
     @field_validator("database_url", mode="before")
     @classmethod

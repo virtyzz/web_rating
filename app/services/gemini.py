@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 
 from google import genai
+from google.genai import errors
 from google.genai import types
 from pydantic import ValidationError
 
@@ -46,8 +47,9 @@ class GeminiService:
                 return GeminiPlayersResponse.model_validate(json.loads(response.text))
             except (json.JSONDecodeError, ValidationError, ValueError) as exc:
                 last_error = exc
+            except errors.APIError as exc:
+                raise GeminiExtractionError(f"Gemini API request failed: {exc}") from exc
 
         raise GeminiExtractionError(
             f"Gemini returned invalid structured data after retry: {last_error}"
         )
-
